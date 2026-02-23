@@ -6,6 +6,9 @@ docker compose logs setup
 docker exec -it replica /bin/bash
 mysql -u root -proot1234
 mysql> SHOW REPLICA STATUS\G
+
+# OR
+SHOW REPLICA STATUS FOR CHANNEL 'ch_shard2'\G
 ```
 
 # 실습
