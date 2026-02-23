@@ -1,0 +1,112 @@
+services:
+
+  # ──────────────────────────────────────────
+  # shard1: user_id 1~500 담당
+  # ──────────────────────────────────────────
+  shard1:
+    image: mysql:latest
+    container_name: shard1
+    command:
+      - --server-id=1
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-bin=mysql-bin 
+      - --binlog-format=ROW # deprecated
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+    volumes:
+      - ./source1/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - shard1-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - repl-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-proot1234"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ──────────────────────────────────────────
+  # shard2: user_id 501~1000 담당
+  # ──────────────────────────────────────────
+  shard2:
+    image: mysql:latest
+    container_name: shard2
+    command:
+      - --server-id=2
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW 
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+    volumes:
+      - ./source2/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - shard2-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - repl-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-proot1234"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ──────────────────────────────────────────
+  # replica: 두 샤드를 모두 받는 분석용 DB
+  # ──────────────────────────────────────────
+  replica:
+    image: mysql:latest
+    container_name: replica
+    command:
+      - --server-id=3
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --read-only=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+    volumes:
+      - replica-data:/var/lib/mysql
+    ports:
+      - "3308:3306"
+    networks:
+      - repl-net
+    depends_on:
+      shard1:
+        condition: service_healthy
+      shard2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-proot1234"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ──────────────────────────────────────────
+  # setup: replica 채널 설정 자동화 (1회성 컨테이너)
+  # ──────────────────────────────────────────
+  setup:
+    image: mysql:latest
+    container_name: setup
+    volumes:
+      - ./scripts/setup-replica.sh:/setup-replica.sh:ro
+    networks:
+      - repl-net
+    depends_on:
+      replica:
+        condition: service_healthy
+    entrypoint: ["bash", "/setup-replica.sh"]
+    restart: "no"
+
+networks:
+  repl-net:
+    driver: bridge
+
+volumes:
+  shard1-data:
+  shard2-data:
+  replica-data:
