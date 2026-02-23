@@ -66,7 +66,7 @@ services:
       - --enforce-gtid-consistency=ON
       - --log-bin=mysql-bin
       - --binlog-format=ROW
-      - --read-only=ON
+      - --super-read-only=ON # root user에게도 read-only로 제한
     environment:
       MYSQL_ROOT_PASSWORD: root1234
     volumes:

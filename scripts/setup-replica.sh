@@ -24,6 +24,10 @@ CHANGE REPLICATION FILTER
 FOR CHANNEL 'ch_shard1';
 EOF
 
+# REPLICATE_WILD_DO_TABLE: Include updates based on wildcard pattern matching table name
+# shard1 DB 안에 있는 테이블만 받아오도록 필터링 설정
+
+
 echo "[replica-setup] ch_shard1 채널 설정 완료"
 
 # shard2 채널 설정
