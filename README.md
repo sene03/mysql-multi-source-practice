@@ -238,5 +238,3 @@ FROM performance_schema.replication_applier_status;
 SELECT @@GLOBAL.gtid_executed;
 ```
 
-INSERT INTO shard1.users (user_id, username, email) VALUES (9999, 'hack', 'hack@example.com');
-```
